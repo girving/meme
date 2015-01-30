@@ -1,0 +1,151 @@
+\documentclass[11pt]{article}
+\usepackage{amsfonts,amssymb,amsthm,eucal,amsmath}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{latexsym,url}
+\usepackage{array}
+\usepackage{subfig}
+\usepackage{comment}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\hypersetup{colorlinks=true,linkcolor=blue}
+\newcommand{\myspace}{\vspace{.1in}\noindent}
+\newcommand{\mymyspace}{\vspace{.1in}}
+\usepackage[inner=30mm, outer=30mm, textheight=225mm]{geometry}
+\creflabelformat{equation}{#2(#1)#3}
+\crefname{equation}{}{}
+\Crefname{equation}{}{}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{prop}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{defn}[theorem]{Definition}
+\newtheorem{notn}[theorem]{Notation}
+\newtheorem{cond}[theorem]{Condition}
+\newtheorem{ex}[theorem]{Example}
+\newtheorem{rmk}[theorem]{Remark}
+
+\newcommand{\TODO}{{\color{red} TODO}}
+
+% Code and primitives
+\newcommand{\cc}[1]{\texttt{#1}}
+\newcommand{\and}{\&\&}
+\newcommand{\Env}{\cc{Env}}
+\newcommand{\Known}{\cc{Known}}
+
+% Fix weird spacing issue in \cc.  For details, see
+% https://tex.stackexchange.com/questions/118455/why-is-there-extra-space-after-in-texttt
+\makeatletter
+\let\ttfamily\relax % avoid a spurious warning
+\DeclareRobustCommand\ttfamily{\not@math@alphabet\ttfamily\mathtt\fontfamily\ttdefault\selectfont\frenchspacing}
+\makeatother
+
+\title{A logic for computation}
+\author{Geoffrey Irving\thanks{Email: irving@otherlab.com, Otherlab, San Francisco, CA, United States}}
+\date{Version 1, \today}
+
+\begin{document}
+\maketitle
+
+We want a logic that mixes computational objects with noncomputational objects, combining the
+expressiveness of ZFC with programming.  We'll start by completely ignoring issues of soundness
+and universes, then attempt to fix this later.  We will also ignore issues of size (sizeof),
+by assuming that all computational types are word sized as in ocaml.  I believe that fixing
+these issues will be relatively easy.
+
+More importantly, we start out assuming a purely functional universe.  This assumption is much
+harder to eliminate, but we have to start somewhere.
+
+We use ASCII notation where possible to make it easy to translate into code.  In particular,
+we use \cc{(:)} in place of $(\in)$ for set membership, \cc{<:} in place of $(\subset)$ for subset,
+\cc{->} for function types, and \cc{x => ...} for anonymous functions.
+
+\section{Primitives}
+
+We have two universes \cc{Set} and \cc{Any}, where \cc{Set <: Any}.  \cc{Any} contains both sets
+and immutable computational objects (booleans, lists, functions, etc.).  \cc{Set} is the ZFC
+universe with individuals, where individuals include at least the computational objects.  We do
+not assume the individuals include \emph{only} the computational objects, although that would
+be a harmless assumption.
+
+Aside: although \cc{Set} lives in some sense outside the computational universe, we allow
+pointers to point directly to sets.  At machine runtime the logic will enforce that such a
+pointer is used solely for pointer equality comparison.
+
+The notion of a function is a bit slippery, since we want both the nice properties of ZFC
+functions (concrete domain, concrete range, extensionality), and first class support for
+partial vs. total and computable vs. noncomputable.  I believe we need two notions; since
+the ZFC notion is emergent from sets in ZFC, only the second notion is necessary as a
+separate primitive.  We'll curry, so actually what we want is not a notion of function, but
+of value.  Since we allow pointers to reference sets, and general values have no properties
+that sets don't, this second notion is actually just \cc{Any}.
+
+The primitives in our logic are
+
+\begin{enumerate}
+\item \cc{empty : Set}: The empty set: \cc{all Any (x => !(x : empty))}
+\item \cc{Bool : Set}: The set of booleans
+\item \cc{false,true : Bool}: The boolean individuals
+\item \cc{(:) : Any}: The set membership function
+\item \cc{(==) : Any}: Perfect structural equality over \cc{Any}
+\item \cc{(!) : Any}: Boolean not: if \cc{b : Bool}, \cc{!b : Bool} is the other boolean
+\item \cc{(\&\&) : Any}: Boolean and
+\item \cc{all : Any}: Universal quantification over a set: if \cc{a : Set, f : a -> Bool}, \cc{all f a : Bool}
+\item \cc{subsets : Any}: Power set: if \cc{a : Set}, \cc{subsets a : Set}
+\item \cc{safe : Any}: Function safety at an argument: if \cc{f : Any, x : Any}, \cc{safe f x : Bool}
+\item \cc{filter : Any}: Subset extraction: if \cc{a : Set, f : a -> Bool}, \cc{filter f a : Set}
+\item \cc{choice : Any}: Global choice: if \cc{a : Set} is nonempty, \cc{choice a : a}
+\end{enumerate}
+
+Important: for now, we explicitly leave out a primitive notion of whether a function is ``computational''
+at a value (whether it terminates).  This is because termination is not required for the logic to be
+sound, and on a physical machine termination by itself is a useless construct.  Soundness matters, and
+efficient execution matters, but little in between.  As with Milawa, we bail at runtime
+if the system attempts to run a noncomputational function.
+
+Based on these primitives, we define several derived notions:
+
+\begin{enumerate}
+\item Boolean or: \cc{a || b = !(!a \&\& !b)}
+\item Function types: \cc{(a -> b) = filter (f => all (x => safe f x \&\& f x : b) a) Any}
+\item Existential quantification: \cc{any f a = !(all (x => !(f x)) a)}
+\item Function composition: \cc{f . g = (x => f (g x))}
+\end{enumerate}
+
+\section{Environments and knowledge}
+
+A proposition is simply a boolean value, together with its definition as code.  Code is an
+algebraic datatype
+\begin{verbatim}
+data Code =
+    Var Name
+  | Value Any
+  | Lambda Name Code
+  | Apply Code Code
+\end{verbatim}
+That's not going to be enough (a bare \cc{Any} is essentially useless, and we've left out
+both conditionals and macros), but we'll add further features as necessary.
+
+An environment is a (finite) map from names to values and optionally definitions.  That is
+\begin{verbatim}
+type Env = Map Name (Any,Maybe Code)
+\end{verbatim}
+Our knowledge is a set of names that we have proven are true:
+\begin{verbatim}
+type Known = Set Name
+\end{verbatim}
+
+Frequently, we'll have a function in \cc{Env} like \cc{refl = x => x == x}, together with a theorem
+of the form \cc{reflAll = all refl Any} which will appear in \cc{Env} and \cc{Known}.  That is, the
+theorem fills in all the missing universal quantification in the function.
+
+\section{Definitions and proofs}
+
+At a given point in the code, we have a number of definitions in \Env, some of which are \Known.
+We would like to know how to define new things, and how to prove that some of these are true.
+
+\end{document}

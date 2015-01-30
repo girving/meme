@@ -1,0 +1,6 @@
+.sconsign.dblite
+logic.pdf
+*.aux
+*.fls
+*.log
+*.out
