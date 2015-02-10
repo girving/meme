@@ -33,16 +33,19 @@
 
 % Code and primitives
 \newcommand{\cc}[1]{\texttt{#1}}
-\newcommand{\and}{\&\&}
 \newcommand{\Env}{\cc{Env}}
 \newcommand{\Known}{\cc{Known}}
+%\newcommand{\a}{\&\&}
+%\newcommand{\c}[1]{\operatorname{#1}}
+\newcommand{\Set}{\operatorname{Set}}
+\newcommand{\empty}{\operatorname{empty}}
 
 % Fix weird spacing issue in \cc.  For details, see
 % https://tex.stackexchange.com/questions/118455/why-is-there-extra-space-after-in-texttt
-\makeatletter
-\let\ttfamily\relax % avoid a spurious warning
-\DeclareRobustCommand\ttfamily{\not@math@alphabet\ttfamily\mathtt\fontfamily\ttdefault\selectfont\frenchspacing}
-\makeatother
+%\makeatletter
+%\let\ttfamily\relax % avoid a spurious warning
+%\DeclareRobustCommand\ttfamily{\not@math@alphabet\ttfamily\mathtt\fontfamily\ttdefault\selectfont\frenchspacing}
+%\makeatother
 
 \title{A logic for computation}
 \author{Geoffrey Irving\thanks{Email: irving@otherlab.com, Otherlab, San Francisco, CA, United States}}
@@ -87,7 +90,7 @@ that sets don't, this second notion is actually just \cc{Any}.
 The primitives in our logic are
 
 \begin{enumerate}
-\item \cc{empty : Set}: The empty set: \cc{all Any (x => !(x : empty))}
+\item $\empty : \Set$: The empty set: \cc{all Any (x => !(x : empty))}
 \item \cc{Bool : Set}: The set of booleans
 \item \cc{false,true : Bool}: The boolean individuals
 \item \cc{(:) : Any}: The set membership function

@@ -1,0 +1,34 @@
+(match p
+  (_:PackageDen) (...)
+  (_...)         (...))
+
+(define f (x y z)
+  (sin x + y + z))
+
+(define f ((x Float) (y Float) (z Float))
+  (sin x + y + z))
+
+define f (x Float, y Float, z Float)
+  sin x + y + z
+
+The comma operator separates two lists.
+
+, ::
+
+define f (x (List Float), y Float, z Float)
+
+isFloat : Any -> Boolean
+
+define f (x y z)
+  require (isFloat x)
+  require (isFloat y)
+  ...
+
+x
+x y
+(x y)
+(x y,
+
+if x y z
+
+if (empty x) (f y) (g z)
