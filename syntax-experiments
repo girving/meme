@@ -32,3 +32,21 @@ x y
 if x y z
 
 if (empty x) (f y) (g z)
+
+define cons (x : a, 
+
+define cons (x a, y (list a))
+  x :: y
+
+def cons (x y)
+  x : y
+
+x : t && y : list t -> cons x y : list t
+cons : t -> list t -> list t
+
+cons x y = x : y
+
+f x y = x + y
+
+nestMap f = [map [map f _] _]
+nestMap f = map (map f _) _
